@@ -1,11 +1,11 @@
-import { google, searchconsole_v1, webmasters_v3 } from 'googleapis';
+import { google, searchconsole_v1 } from 'googleapis';
 import { GoogleAuth } from 'google-auth-library';
 
 type SearchanalyticsQueryRequest =
-  webmasters_v3.Params$Resource$Searchanalytics$Query['requestBody'];
-type ListSitemapsRequest = webmasters_v3.Params$Resource$Sitemaps$List;
-type GetSitemapRequest = webmasters_v3.Params$Resource$Sitemaps$Get;
-type SubmitSitemapRequest = webmasters_v3.Params$Resource$Sitemaps$Submit;
+  searchconsole_v1.Params$Resource$Searchanalytics$Query;
+type ListSitemapsRequest = searchconsole_v1.Params$Resource$Sitemaps$List;
+type GetSitemapRequest = searchconsole_v1.Params$Resource$Sitemaps$Get;
+type SubmitSitemapRequest = searchconsole_v1.Params$Resource$Sitemaps$Submit;
 type IndexInspectRequest =
   searchconsole_v1.Params$Resource$Urlinspection$Index$Inspect['requestBody'];
 
@@ -17,14 +17,6 @@ export class SearchConsoleService {
       keyFile: credentials,
       scopes: ['https://www.googleapis.com/auth/webmasters.readonly'],
     });
-  }
-
-  private async getWebmasters() {
-    const authClient = await this.auth.getClient();
-    return google.webmasters({
-      version: 'v3',
-      auth: authClient,
-    } as webmasters_v3.Options);
   }
 
   private async getSearchConsole() {
@@ -57,25 +49,29 @@ export class SearchConsoleService {
     }
   }
 
-  async searchAnalytics(siteUrl: string, requestBody: SearchanalyticsQueryRequest) {
-    const webmasters = await this.getWebmasters();
+  async searchAnalytics(requestBody: SearchanalyticsQueryRequest) {
+    const searchConsole = await this.getSearchConsole();
     return this.handlePermissionError(
-      () => webmasters.searchanalytics.query({ siteUrl, requestBody }),
-      () => webmasters.searchanalytics.query({ siteUrl: this.normalizeUrl(siteUrl), requestBody }),
+      () => searchConsole.searchanalytics.query(requestBody),
+      () =>
+        searchConsole.searchanalytics.query({
+          ...requestBody,
+          siteUrl: this.normalizeUrl(requestBody.siteUrl!),
+        }),
     );
   }
 
   async listSites() {
-    const webmasters = await this.getWebmasters();
-    return webmasters.sites.list();
+    const searchConsole = await this.getSearchConsole();
+    return searchConsole.sites.list();
   }
 
   async listSitemaps(requestBody: ListSitemapsRequest) {
-    const webmasters = await this.getWebmasters();
+    const searchConsole = await this.getSearchConsole();
     return this.handlePermissionError(
-      () => webmasters.sitemaps.list(requestBody),
+      () => searchConsole.sitemaps.list(requestBody),
       () =>
-        webmasters.sitemaps.list({
+        searchConsole.sitemaps.list({
           ...requestBody,
           siteUrl: this.normalizeUrl(requestBody.siteUrl!),
         }),
@@ -83,11 +79,11 @@ export class SearchConsoleService {
   }
 
   async getSitemap(requestBody: GetSitemapRequest) {
-    const webmasters = await this.getWebmasters();
+    const searchConsole = await this.getSearchConsole();
     return this.handlePermissionError(
-      () => webmasters.sitemaps.get(requestBody),
+      () => searchConsole.sitemaps.get(requestBody),
       () =>
-        webmasters.sitemaps.get({
+        searchConsole.sitemaps.get({
           ...requestBody,
           siteUrl: this.normalizeUrl(requestBody.siteUrl!),
         }),
@@ -95,11 +91,11 @@ export class SearchConsoleService {
   }
 
   async submitSitemap(requestBody: SubmitSitemapRequest) {
-    const webmasters = await this.getWebmasters();
+    const searchConsole = await this.getSearchConsole();
     return this.handlePermissionError(
-      () => webmasters.sitemaps.submit(requestBody),
+      () => searchConsole.sitemaps.submit(requestBody),
       () =>
-        webmasters.sitemaps.submit({
+        searchConsole.sitemaps.submit({
           ...requestBody,
           siteUrl: this.normalizeUrl(requestBody.siteUrl!),
         }),
@@ -108,6 +104,31 @@ export class SearchConsoleService {
 
   async indexInspect(requestBody: IndexInspectRequest) {
     const searchConsole = await this.getSearchConsole();
-    return searchConsole.urlInspection.index.inspect({ requestBody });
+    const response = await searchConsole.urlInspection.index.inspect({
+      requestBody,
+    });
+
+    const inspectionResult = response.data.inspectionResult;
+    if (!inspectionResult) {
+      return {
+        summary: 'No inspection result found.',
+        inspectionResult,
+      };
+    }
+
+    const { indexStatusResult } = inspectionResult;
+    if (!indexStatusResult) {
+      return {
+        summary: 'No index status result found.',
+        inspectionResult,
+      };
+    }
+
+    const { coverageState, pageFetchState } = indexStatusResult;
+
+    return {
+      summary: `Coverage: ${coverageState}, Fetch State: ${pageFetchState}`,
+      ...inspectionResult,
+    };
   }
 }

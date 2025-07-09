@@ -47,37 +47,25 @@ export const IndexInspectSchema = GSCBaseSchema.extend({
     ),
 });
 
-export const ListSitemapsSchema = z.object({
+export const ListSitemapsSchema = GSCBaseSchema.extend({
   sitemapIndex: z
     .string()
     .optional()
     .describe(
       "A URL of a site's sitemap index. For example: http://www.example.com/sitemapindex.xml",
     ),
-  siteUrl: z
-    .string()
-    .optional()
-    .describe("The site's URL, including protocol. For example: http://www.example.com/"),
 });
 
-export const GetSitemapSchema = z.object({
+export const GetSitemapSchema = GSCBaseSchema.extend({
   feedpath: z
     .string()
-    .optional()
     .describe('The URL of the actual sitemap. For example: http://www.example.com/sitemap.xml'),
-  siteUrl: z
-    .string()
-    .optional()
-    .describe("The site's URL, including protocol. For example: http://www.example.com/"),
 });
 
-export const SubmitSitemapSchema = z.object({
+export const SubmitSitemapSchema = GSCBaseSchema.extend({
   feedpath: z
     .string()
     .describe('The URL of the sitemap to add. For example: http://www.example.com/sitemap.xml'),
-  siteUrl: z
-    .string()
-    .describe("The site's URL, including protocol. For example: http://www.example.com/"),
 });
 
 export type SearchAnalytics = z.infer<typeof SearchAnalyticsSchema>;

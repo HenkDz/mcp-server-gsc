@@ -83,8 +83,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     switch (request.params.name) {
       case 'search_analytics': {
         const args = SearchAnalyticsSchema.parse(request.params.arguments);
-        const siteUrl = args.siteUrl;
         const requestBody = {
+          siteUrl: args.siteUrl,
           startDate: args.startDate,
           endDate: args.endDate,
           dimensions: args.dimensions,
@@ -92,7 +92,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           aggregationType: args.aggregationType,
           rowLimit: args.rowLimit,
         };
-        const response = await searchConsole.searchAnalytics(siteUrl, requestBody);
+        const response = await searchConsole.searchAnalytics(requestBody);
         return {
           content: [
             {
@@ -127,7 +127,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           content: [
             {
               type: 'text',
-              text: JSON.stringify(response.data, null, 2),
+              text: JSON.stringify(response, null, 2),
             },
           ],
         };
